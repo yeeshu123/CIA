@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Performance Enhancers</title>
+    <style>
+        :root {
+            --bg: #000000;
+            --surface: #111111;
+            --accent: #ffffff; 
+            --text: #ffffff;
+            --text-dim: #777777;
+            --border: #333333;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: background-color 0.5s ease;
+        }
+
+        .app-shell {
+            width: 100%;
+            max-width: 440px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* UI Elements to Fade */
+        .fade-ui {
+            transition: opacity 0.8s ease, filter 0.8s ease;
+        }
+
+        body.zen-mode .fade-ui {
+            opacity: 0;
+            filter: blur(4px);
+            pointer-events: none;
+        }
+
+        /* Invisible clickable overlay to stop the session */
+        #zen-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 10;
+            display: none;
+            cursor: pointer;
+        }
+        body.zen-mode #zen-overlay { display: block; }
+
+        /* Top Session Timer */
+        .session-timer {
+            font-size: 1.5rem;
+            font-weight: 300;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Breathing Animation */
+        .breathing-display {
+            position: relative;
+            height: 250px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 10px;
+            z-index: 1; /* Keeps it under the stop overlay */
+        }
+
+        .halo {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+            transition: transform 1s ease-in-out;
+        }
+
+        .core {
+            width: 70px;
+            height: 70px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 40px rgba(255, 255, 255, 0.2);
+            transition: transform 1s linear;
+        }
+
+        .status-label {
+            font-size: 1.1rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 5px;
+            font-weight: 300;
+            height: 1.5em;
+        }
+
+        .timer-val {
+            font-size: 3.5rem;
+            font-weight: 200;
+            margin-bottom: 25px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Controls */
+        .grid-nav {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            padding: 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        button.active {
+            border-color: var(--accent);
+            color: var(--bg);
+            background: var(--accent);
+        }
+
+        .action-btn {
+            grid-column: span 2;
+            margin-top: 15px;
+            background: var(--text);
+            color: black;
+            border: none;
+            font-size: 1rem;
+            letter-spacing: 1px;
+            padding: 18px;
+        }
+
+        .settings-box {
+            margin-top: 20px;
+            background: var(--surface);
+            padding: 15px;
+            border-radius: 15px;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+        }
+
+        .setting-row:last-child { margin-bottom: 0; }
+
+        .custom-input-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        input[type=number], select {
+            background: #222;
+            color: white;
+            border: 1px solid #444;
+            padding: 8px;
+            border-radius: 5px;
+            outline: none;
+            text-align: center;
+            font-family: inherit;
+        }
+
+        input[type=number] { width: 60px; }
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=range] { padding: 0; width: 120px; accent-color: var(--accent); }
+        
+        .sub-text { font-size: 0.75rem; color: var(--text-dim); margin-top: 15px; text-align: center;}
+    </style>
+</head>
+<body>
+
+<div id="zen-overlay" onclick="forceStop()"></div>
+
+<div class="app-shell">
+    <div class="session-timer fade-ui" id="session-time-display">03:00</div>
+    <div class="status-label fade-ui" id="phase-name">READY</div>
+    
+    <div class="breathing-display">
+        <div class="halo" id="halo"></div>
+        <div class="core" id="core"></div>
+    </div>
+    
+    <div class="timer-val fade-ui" id="time-display">--</div>
+
+    <div class="grid-nav fade-ui">
+        <button onclick="changeMode('box')" id="btn-box">BOX</button>
+        <button onclick="changeMode('478')" id="btn-478">4-7-8</button>
+        <button onclick="changeMode('resonant')" id="btn-resonant">RESONANT</button>
+        <button onclick="changeMode('military')" id="btn-military">MILITARY</button>
+        <button class="action-btn" id="master-btn" onclick="startSession()">START SESSION</button>
+    </div>
+
+    <div class="settings-box fade-ui">
+        <div class="setting-row">
+            <span>Session Length</span>
+            <div class="custom-input-group">
+                <input type="number" id="custom-minutes" value="3" min="0" onchange="updateTimerPreview()"> 
+                <span style="color: var(--text-dim)">min</span>
+                <input type="number" id="custom-seconds" value="0" min="0" max="59" onchange="updateTimerPreview()">
+                <span style="color: var(--text-dim)">sec</span>
+            </div>
+        </div>
+        <div class="setting-row">
+            <span>When Timer Ends</span>
+            <select id="end-action">
+                <option value="sound">Play Tibetan Bell</option>
+                <option value="silent">End Silently</option>
+            </select>
+        </div>
+        <div class="setting-row" id="box-dur-setting">
+            <span>Box Duration (<span id="box-ui-val">4s</span>)</span>
+            <input type="range" min="3" max="10" value="4" oninput="updateBoxDur(this.value)">
+        </div>
+    </div>
+    
+    <div class="sub-text fade-ui">Grayscale • Offline • Tap anywhere to stop</div>
+</div>
+
+<script>
+    let audioCtx;
+    let isRunning = false;
+    let mode = 'box';
+    let boxSeconds = 4;
+    let sessionInterval;
+    let secondsRemaining = 180; 
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playTibetanBell(baseFreq, duration, isCompletion = false) {
+        if (!audioCtx) return;
+        
+        const now = audioCtx.currentTime;
+        const mainGain = audioCtx.createGain();
+        mainGain.connect(audioCtx.destination);
+        
+        const attack = 0.05;
+        const sustainLevel = isCompletion ? 0.6 : 0.25;
+        const decayTime = isCompletion ? 6.0 : duration; 
+        
+        mainGain.gain.setValueAtTime(0, now);
+        mainGain.gain.linearRampToValueAtTime(sustainLevel, now + attack);
+        mainGain.gain.exponentialRampToValueAtTime(0.001, now + decayTime);
+
+        const partials = [
+            { ratio: 1, gain: 1.0 },
+            { ratio: 2.76, gain: 0.4 },
+            { ratio: 5.4, gain: 0.2 }
+        ];
+
+        partials.forEach(p => {
+            const osc = audioCtx.createOscillator();
+            const pGain = audioCtx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.value = baseFreq * p.ratio;
+            
+            const lfo = audioCtx.createOscillator();
+            const lfoGain = audioCtx.createGain();
+            lfo.type = 'sine';
+            lfo.frequency.value = 4; 
+            lfoGain.gain.value = 2; 
+            lfo.connect(lfoGain);
+            lfoGain.connect(osc.frequency);
+            lfo.start(now);
+            lfo.stop(now + decayTime);
+
+            pGain.gain.value = p.gain;
+            osc.connect(pGain);
+            pGain.connect(mainGain);
+            
+            osc.start(now);
+            osc.stop(now + decayTime);
+        });
+    }
+
+    const techniques = {
+        box: () => [
+            { name: 'Inhale', dur: boxSeconds, size: 3, freq: 216 },
+            { name: 'Hold', dur: boxSeconds, size: 3, freq: 108 },
+            { name: 'Exhale', dur: boxSeconds, size: 1, freq: 144 },
+            { name: 'Hold', dur: boxSeconds, size: 1, freq: 108 }
+        ],
+        '478': () => [
+            { name: 'Inhale', dur: 4, size: 3, freq: 216 },
+            { name: 'Hold', dur: 7, size: 3, freq: 108 },
+            { name: 'Exhale', dur: 8, size: 1, freq: 144 }
+        ],
+        resonant: () => [
+            { name: 'Inhale', dur: 6, size: 3, freq: 216 },
+            { name: 'Hold', dur: 10, size: 3, freq: 108 },
+            { name: 'Exhale', dur: 6, size: 1, freq: 144 }
+        ],
+        military: () => [
+            { name: 'Relax Face', dur: 5, size: 1.2, freq: 144 },
+            { name: 'Relax Body', dur: 5, size: 1.1, freq: 108 },
+            { name: 'Clear Mind', dur: 10, size: 1, freq: 86.4 }
+        ]
+    };
+
+    function updateTimerPreview() {
+        let m = parseInt(document.getElementById('custom-minutes').value) || 0;
+        let s = parseInt(document.getElementById('custom-seconds').value) || 0;
+        
+        if(s > 59) { s = 59; document.getElementById('custom-seconds').value = 59; }
+        
+        secondsRemaining = (m * 60) + s;
+        document.getElementById('session-time-display').innerText = formatTime(secondsRemaining);
+    }
+
+    function formatTime(s) {
+        if(s <= 0) return "00:00";
+        let m = Math.floor(s / 60);
+        let sec = s % 60;
+        return (m < 10 ? '0' + m : m) + ":" + (sec < 10 ? '0' + sec : sec);
+    }
+
+    async function runLogic() {
+        const steps = techniques[mode]();
+        for (const s of steps) {
+            if (!isRunning) return;
+
+            // Animate Circle
+            document.getElementById('core').style.transition = `transform ${s.dur}s linear`;
+            document.getElementById('core').style.transform = `scale(${s.size})`;
+            document.getElementById('halo').style.transform = `scale(${s.size + 0.5})`;
+
+            // Audio Cue
+            playTibetanBell(s.freq, s.dur);
+
+            // Wait out the phase duration
+            for (let i = s.dur; i > 0; i--) {
+                if (!isRunning) return;
+                await new Promise(r => setTimeout(r, 1000));
+            }
+        }
+        if (isRunning) runLogic(); // Loop cycle
+    }
+
+    function changeMode(m) {
+        mode = m;
+        document.querySelectorAll('.grid-nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById(`btn-${m}`).classList.add('active');
+        document.getElementById('box-dur-setting').style.display = m === 'box' ? 'flex' : 'none';
+    }
+
+    function updateBoxDur(v) {
+        boxSeconds = parseInt(v);
+        document.getElementById('box-ui-val').innerText = v + 's';
+    }
+
+    function startSession() {
+        initAudio();
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        updateTimerPreview();
+        if (secondsRemaining <= 0) return; 
+
+        isRunning = true;
+        document.body.classList.add('zen-mode'); // Hides the UI
+
+        sessionInterval = setInterval(() => {
+            if (!isRunning) return;
+            secondsRemaining--;
+            
+            if (secondsRemaining <= 0) {
+                endSession();
+            }
+        }, 1000);
+
+        runLogic();
+    }
+
+    function endSession() {
+        forceStop();
+        if (document.getElementById('end-action').value === 'sound') {
+            playTibetanBell(432, 6.0, true); 
+        }
+    }
+
+    function forceStop() {
+        isRunning = false;
+        clearInterval(sessionInterval);
+        
+        // Restore UI
+        document.body.classList.remove('zen-mode');
+        updateTimerPreview();
+        document.getElementById('core').style.transform = 'scale(1)';
+        document.getElementById('halo').style.transform = 'scale(1)';
+    }
+
+    // Init
+    changeMode('box');
+    updateTimerPreview();
+</script>
+
+</body>
+</html>
